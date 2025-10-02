@@ -8,38 +8,7 @@ from PyQt5.QtGui import QFont, QFontDatabase
 from db import get_connection
 from main import OTForm
 import os
-from ot_admin import OTAdminForm
-from ot_report import OTReportForm
-
-# ✅ เพิ่ม MenuForm
-class MenuForm(QWidget):
-    def __init__(self, employee_code, employee_name):
-        super().__init__()
-        self.setWindowTitle("MENU")
-        self.resize(400, 200)
-
-        layout = QVBoxLayout()
-        layout.addWidget(QLabel(f"ยินดีต้อนรับ Admin: {employee_name} ({employee_code})"))
-
-        self.btn_ot = QPushButton("จัดการคำขอ OT")
-        self.btn_ot.clicked.connect(lambda: self.open_ot_admin(employee_code))
-        layout.addWidget(self.btn_ot)
-
-        self.btn_report = QPushButton("รายงานสรุป OT")
-        self.btn_report.clicked.connect(self.open_ot_report) 
-        layout.addWidget(self.btn_report)
-
-        self.setLayout(layout)
-
-    def open_ot_admin(self, admin_code):
-        from ot_admin import OTAdminForm
-        self.admin_window = OTAdminForm(admin_code)
-        self.admin_window.show()
-
-    def open_ot_report(self):
-        self.report_window = OTReportForm()
-        self.report_window.show()
-
+from menu import MenuForm   # ✅ ใช้ MenuForm จาก menu.py
 
 class LoginForm(QWidget):
     def __init__(self):
@@ -76,6 +45,13 @@ class LoginForm(QWidget):
         layout.addWidget(self.login_btn, alignment=Qt.AlignCenter)
 
         self.setLayout(layout)
+        
+    def clear_fields(self):
+        """ ✅ เคลียร์ username/password """
+        self.username.clear()
+        self.password.clear()
+        self.password.setEchoMode(QLineEdit.Password)
+        self.show_password.setChecked(False)
 
     def toggle_password(self, state):
         if state == Qt.Checked:
@@ -108,12 +84,11 @@ class LoginForm(QWidget):
 
                 self.hide()
                 if emp_auth and emp_auth.strip().lower() == "admin":
-                    # ✅ เปิดหน้า MENU
-                    self.menu_window = MenuForm(emp_code, emp_name)
+                    # ✅ ส่งครบตาม menu.py
+                    self.menu_window = MenuForm(emp_code, emp_name, dept, pos, self)
                     self.menu_window.show()
                 else:
-                    # ✅ เปิดหน้า OTForm
-                    self.ot_window = OTForm()
+                    self.ot_window = OTForm(self)
                     self.ot_window.employee_code.setText(emp_code.strip())
                     self.ot_window.employee_name.setText(emp_name.strip())
                     self.ot_window.department.setText(dept.strip())
@@ -126,6 +101,7 @@ class LoginForm(QWidget):
         except Exception as e:
             QMessageBox.critical(self, "ผิดพลาด", f"Database error: {e}")
 
+    
 
 if __name__ == "__main__":
     app = QApplication(sys.argv)

@@ -92,6 +92,18 @@ def update_ot_status(request_id, status, approver_code, reason=None):
     """, (status, approver_code, reason, request_id))
     conn.commit()
     conn.close()
+    
+def update_ot_time(request_id, start_time, end_time):
+    """อัปเดตเวลาเริ่มและสิ้นสุดของ OT Request"""
+    conn = get_connection()
+    cursor = conn.cursor()
+    cursor.execute("""
+        UPDATE OT_Request
+        SET start_time = ?, end_time = ?
+        WHERE request_id = ?
+    """, (start_time, end_time, request_id))
+    conn.commit()
+    conn.close()    
 
 def get_ot_report(start_date=None, end_date=None, department=None, employee_code=None, status=None):
     conn = get_connection()

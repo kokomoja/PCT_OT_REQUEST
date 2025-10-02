@@ -1,8 +1,7 @@
 from PyQt5.QtWidgets import (
-    QWidget, QVBoxLayout, QHBoxLayout,
-    QLineEdit, QTextEdit, QPushButton, QMessageBox, QLabel,
-    QDateEdit, QTimeEdit, QTableWidget, QTableWidgetItem, QCheckBox,
-    QSpacerItem, QSizePolicy
+    QWidget, QVBoxLayout, QHBoxLayout, QLineEdit, QTextEdit,
+    QPushButton, QMessageBox, QLabel, QDateEdit, QTimeEdit,
+    QTableWidget, QTableWidgetItem, QCheckBox, QSpacerItem, QSizePolicy
 )
 from PyQt5.QtCore import QDate, QTime, QDateTime, QLocale, QTimer, Qt
 from db import insert_ot_request, get_last_ot_requests, delete_ot_request
@@ -12,22 +11,24 @@ def thai_to_arabic(text: str) -> str:
     trans = str.maketrans("๐๑๒๓๔๕๖๗๘๙", "0123456789")
     return text.translate(trans)
 
-
 class OTForm(QWidget):
-    def __init__(self):
+    def __init__(self, login_window):
         super().__init__()
         self.setWindowTitle("คำขอทำงานล่วงเวลา (OT Request)")
         self.resize(950, 700)
+        self.login_window = login_window   # ✅ reference กลับไป LoginForm
 
         layout = QVBoxLayout()
         layout.setContentsMargins(10, 10, 10, 10)
         layout.setSpacing(8)
 
-        # --- Countdown ---
-        self.countdown_label = QLabel("เหลือเวลา ...")
-        self.countdown_label.setStyleSheet("font-size: 18pt; font-weight: bold; color: red;")
-        layout.addWidget(self.countdown_label, alignment=Qt.AlignLeft)
-        
+        # ---- ปุ่ม Logout ----
+        row_top = QHBoxLayout()
+        self.logout_btn = QPushButton("ออกจากระบบ")
+        self.logout_btn.clicked.connect(self.logout)
+        row_top.addWidget(self.logout_btn, alignment=Qt.AlignRight)
+        layout.addLayout(row_top)
+
         # --- Employee info ---
         self.employee_code = QLineEdit()
         self.employee_code.setFixedWidth(60)
@@ -45,28 +46,16 @@ class OTForm(QWidget):
         row1.setAlignment(Qt.AlignLeft)  
         
         row1.addWidget(QLabel("รหัสพนักงาน:"))
-        self.employee_code.setFixedWidth(60)
-        self.employee_code.setSizePolicy(QSizePolicy.Fixed, QSizePolicy.Fixed)
         row1.addWidget(self.employee_code)
-        
         row1.addWidget(QLabel("ชื่อ–นามสกุล:"))
-        self.employee_name.setFixedWidth(150)
-        self.employee_name.setSizePolicy(QSizePolicy.Fixed, QSizePolicy.Fixed)
         row1.addWidget(self.employee_name)
-
         row1.addWidget(QLabel("แผนก:"))
-        self.department.setFixedWidth(100)
-        self.department.setSizePolicy(QSizePolicy.Fixed, QSizePolicy.Fixed)
         row1.addWidget(self.department)
-
         row1.addWidget(QLabel("ตำแหน่ง:"))
-        self.position.setFixedWidth(150)
-        self.position.setSizePolicy(QSizePolicy.Fixed, QSizePolicy.Fixed)
         row1.addWidget(self.position)
 
         row1.addItem(QSpacerItem(20, 20, QSizePolicy.Expanding, QSizePolicy.Minimum))
         layout.addLayout(row1)
-
 
         # --- OT Date + Time ---
         self.ot_date = QDateEdit(calendarPopup=True)
@@ -120,11 +109,10 @@ class OTForm(QWidget):
         self.delete_btn.setEnabled(True)
 
         row_btn = QHBoxLayout()
-        row_btn.setAlignment(Qt.AlignLeft)   # ✅ ชิดซ้ายทั้งหมด
+        row_btn.setAlignment(Qt.AlignLeft)
         row_btn.addWidget(self.save_btn)
         row_btn.addSpacing(20)
         row_btn.addWidget(self.delete_btn)
-
         layout.addLayout(row_btn)
 
         self.save_info = QLabel("")
@@ -150,6 +138,11 @@ class OTForm(QWidget):
         self.timer.timeout.connect(self.update_countdown)
         self.timer.timeout.connect(self.check_button_enabled)
         self.timer.start(1000)
+
+        # Countdown label
+        self.countdown_label = QLabel("เหลือเวลา ...")
+        self.countdown_label.setStyleSheet("font-size: 18pt; font-weight: bold; color: red;")
+        layout.insertWidget(1, self.countdown_label, alignment=Qt.AlignLeft)
 
     # ---------------- Helper ----------------
     def check_button_enabled(self):
@@ -245,7 +238,6 @@ class OTForm(QWidget):
                     item.setTextAlignment(Qt.AlignCenter)
                 self.table.setItem(i, j + 1, item)
 
-        # ✅ ปรับ column ot_reason ไม่เกิน 300px
         self.table.resizeColumnToContents(7)
         if self.table.columnWidth(7) > 300:
             self.table.setColumnWidth(7, 300)
@@ -268,3 +260,16 @@ class OTForm(QWidget):
         else:
             self.countdown_label.setText("เลยเวลา 17:00 แล้ว")
             self.countdown_label.setStyleSheet("color: gray; font-weight: bold;")
+
+    def logout(self):
+        reply = QMessageBox.question(
+            self, "ยืนยันการออกจากระบบ",
+            "คุณแน่ใจหรือไม่ว่าต้องการออกจากระบบ?",
+            QMessageBox.Yes | QMessageBox.No, QMessageBox.No
+        )
+        if reply != QMessageBox.Yes:
+            return
+
+        self.close()
+        self.login_window.clear_fields()   # ✅ เคลียร์ช่อง login
+        self.login_window.show()
