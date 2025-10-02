@@ -1,5 +1,4 @@
 from PyQt5.QtWidgets import QWidget, QVBoxLayout, QPushButton, QLabel, QMessageBox
-
 from ot_admin import OTAdminForm
 from ot_report import OTReportForm
 

@@ -6,8 +6,8 @@ from PyQt5.QtCore import Qt
 from db import get_pending_ot_requests, update_ot_status, update_ot_time
 
 class OTAdminForm(QWidget):
-    def __init__(self, admin_code, parent=None):
-        super().__init__(parent)
+    def __init__(self, admin_code):
+        super().__init__()
         self.setWindowTitle("จัดการคำขอ OT (สำหรับ Admin)")
         self.resize(1350, 600)
         self.admin_code = admin_code
