@@ -1,5 +1,5 @@
 git branch -M main
-git remote set-url origin https://github.com/kokomoja/daily-report-electron.git
+git remote set-url origin https://github.com/kokomoja/PCT_OT_REQUEST.git
 git add .
 git commit -m "upload project Dialogbox Save"
 git push -u origin main --force
