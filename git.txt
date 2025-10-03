@@ -1,5 +1,9 @@
-git branch -M main
-git remote set-url origin https://github.com/kokomoja/PCT_OT_REQUEST.git
+cd PCT_OT_REQUEST
+git init
+
 git add .
-git commit -m "upload project Dialogbox Save"
-git push -u origin main --force
+
+git commit -m "Initial commit with full OT Request system (Excel/PDF export fixed)"
+
+git branch -M main
+git push -u origin main
