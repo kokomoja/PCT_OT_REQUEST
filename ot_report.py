@@ -133,6 +133,8 @@ class OTReportForm(QWidget):
         self.table.setColumnWidth(9, max(self.table.columnWidth(9), 320))
 
     def export_excel(self):
+        from PyQt5.QtWidgets import QFileDialog
+
         rows = []
         for i in range(self.table.rowCount()):
             row = []
@@ -149,10 +151,21 @@ class OTReportForm(QWidget):
             "ID", "รหัส", "ชื่อ", "แผนก", "ตำแหน่ง",
             "วันที่", "เวลาเริ่ม", "เวลาสิ้นสุด", "ชั่วโมง OT", "เหตุผล", "สถานะ"
         ])
-        df.to_excel("ot_report.xlsx", index=False)
-        QMessageBox.information(self, "สำเร็จ", "บันทึกไฟล์ ot_report.xlsx เรียบร้อย ✅")
+
+        # ✅ เปิด dialog ให้เลือกที่บันทึก
+        file_path, _ = QFileDialog.getSaveFileName(self, "บันทึกไฟล์ Excel", "ot_report.xlsx", "Excel Files (*.xlsx)")
+        if not file_path:
+            return  # กดยกเลิก
+
+        try:
+            df.to_excel(file_path, index=False)
+            QMessageBox.information(self, "สำเร็จ", f"บันทึกไฟล์เรียบร้อย: {file_path}")
+        except Exception as e:
+            QMessageBox.critical(self, "ผิดพลาด", f"ไม่สามารถบันทึกไฟล์ได้: {e}")
+
 
     def export_pdf(self):
+        from PyQt5.QtWidgets import QFileDialog
         try:
             from reportlab.lib.pagesizes import A4, landscape
             from reportlab.lib import colors
@@ -162,9 +175,12 @@ class OTReportForm(QWidget):
             from reportlab.pdfbase.ttfonts import TTFont
             import os
 
-            # ✅ โหลดฟอนต์ภาษาไทย (ต้องมีไฟล์ TTF อยู่ในโฟลเดอร์ fonts/)
-            font_path = os.path.join(os.path.dirname(__file__), "fonts", "THSarabunNew.ttf")
-            pdfmetrics.registerFont(TTFont("THSarabunNew", font_path))
+            # ✅ โหลดฟอนต์ภาษาไทย (ทั้ง 4 แบบ)
+            font_dir = os.path.join(os.path.dirname(__file__), "fonts")
+            pdfmetrics.registerFont(TTFont("THSarabunNew", os.path.join(font_dir, "THSarabunNew.ttf")))
+            pdfmetrics.registerFont(TTFont("THSarabunNew-Bold", os.path.join(font_dir, "THSarabunNew Bold.ttf")))
+            pdfmetrics.registerFont(TTFont("THSarabunNew-Italic", os.path.join(font_dir, "THSarabunNew Italic.ttf")))
+            pdfmetrics.registerFont(TTFont("THSarabunNew-BoldItalic", os.path.join(font_dir, "THSarabunNew BoldItalic.ttf")))
 
             # ✅ กำหนด stylesheet ที่รองรับภาษาไทย
             styles = getSampleStyleSheet()
@@ -186,8 +202,13 @@ class OTReportForm(QWidget):
                 QMessageBox.warning(self, "เตือน", "ไม่มีข้อมูลสำหรับ Export")
                 return
 
+            # ✅ เปิด dialog ให้เลือกที่บันทึก
+            file_path, _ = QFileDialog.getSaveFileName(self, "บันทึกไฟล์ PDF", "ot_report.pdf", "PDF Files (*.pdf)")
+            if not file_path:
+                return  # กดยกเลิก
+
             doc = SimpleDocTemplate(
-                "ot_report.pdf",
+                file_path,
                 pagesize=landscape(A4),
                 leftMargin=18, rightMargin=18, topMargin=18, bottomMargin=18
             )
@@ -202,7 +223,7 @@ class OTReportForm(QWidget):
                 ('TEXTCOLOR', (0,0), (-1,0), colors.white),
                 ('ALIGN', (0,0), (-1,-1), 'CENTER'),
                 ('VALIGN', (0,0), (-1,-1), 'MIDDLE'),
-                ('FONTNAME', (0,0), (-1,-1), 'THSarabunNew'),   # ✅ บังคับใช้ฟอนต์ไทย
+                ('FONTNAME', (0,0), (-1,-1), 'THSarabunNew'),
                 ('FONTSIZE', (0,0), (-1,-1), 12),
                 ('GRID', (0,0), (-1,-1), 0.25, colors.grey),
                 ('ROWBACKGROUNDS', (0,1), (-1,-1), [colors.whitesmoke, colors.HexColor("#F5F5F5")]),
@@ -210,7 +231,7 @@ class OTReportForm(QWidget):
 
             elems.append(table)
             doc.build(elems)
-            QMessageBox.information(self, "สำเร็จ", "บันทึกไฟล์ ot_report.pdf เรียบร้อย ✅")
+            QMessageBox.information(self, "สำเร็จ", f"บันทึกไฟล์เรียบร้อย: {file_path}")
         except Exception as e:
             QMessageBox.critical(self, "ผิดพลาด", f"Export PDF ล้มเหลว: {e}")
 
