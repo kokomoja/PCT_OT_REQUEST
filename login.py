@@ -1,4 +1,5 @@
 import sys
+import os
 from PyQt5.QtWidgets import (
     QApplication, QWidget, QVBoxLayout, QHBoxLayout, QLabel,
     QLineEdit, QPushButton, QMessageBox, QCheckBox
@@ -7,7 +8,6 @@ from PyQt5.QtCore import Qt
 from PyQt5.QtGui import QFont, QFontDatabase
 from db import get_connection
 from main import OTForm
-import os
 from menu import MenuForm   # ✅ ใช้ MenuForm จาก menu.py
 
 class LoginForm(QWidget):
@@ -101,13 +101,11 @@ class LoginForm(QWidget):
         except Exception as e:
             QMessageBox.critical(self, "ผิดพลาด", f"Database error: {e}")
 
-    
-
 if __name__ == "__main__":
     app = QApplication(sys.argv)
 
     # โหลดฟอนต์ไทย
-    font_path = os.path.join(os.path.dirname(__file__), "fonts", "THSarabun.ttf")
+    font_path = os.path.join(os.path.dirname(__file__), "fonts", "THSarabunNew.ttf")
     font_id = QFontDatabase.addApplicationFont(font_path)
 
     if font_id == -1:

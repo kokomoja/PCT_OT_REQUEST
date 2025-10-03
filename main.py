@@ -5,11 +5,8 @@ from PyQt5.QtWidgets import (
 )
 from PyQt5.QtCore import QDate, QTime, QDateTime, QLocale, QTimer, Qt
 from db import insert_ot_request, get_last_ot_requests, delete_ot_request
+from utils import setup_dateedit, setup_timeedit, thai_to_arabic, confirm_dialog
 
-# ✅ ฟังก์ชันแปลงเลขไทยเป็นเลขอารบิก
-def thai_to_arabic(text: str) -> str:
-    trans = str.maketrans("๐๑๒๓๔๕๖๗๘๙", "0123456789")
-    return text.translate(trans)
 
 class OTForm(QWidget):
     def __init__(self, login_window):
@@ -22,11 +19,22 @@ class OTForm(QWidget):
         layout.setContentsMargins(10, 10, 10, 10)
         layout.setSpacing(8)
 
-        # ---- ปุ่ม Logout ----
+        # ---- บรรทัดบนสุด: Label + Logout ----
         row_top = QHBoxLayout()
+
+        # ✅ Label นับเวลาถอยหลัง (ชิดซ้าย)
+        self.countdown_label = QLabel("เหลือเวลา ...")
+        self.countdown_label.setStyleSheet("font-size: 18pt; font-weight: bold; color: red;")
+        row_top.addWidget(self.countdown_label, alignment=Qt.AlignLeft)
+
+        # ✅ Spacer กลาง
+        row_top.addStretch(1)
+
+        # ✅ ปุ่มออกจากระบบ (ชิดขวาสุด)
         self.logout_btn = QPushButton("ออกจากระบบ")
         self.logout_btn.clicked.connect(self.logout)
         row_top.addWidget(self.logout_btn, alignment=Qt.AlignRight)
+
         layout.addLayout(row_top)
 
         # --- Employee info ---
@@ -58,18 +66,16 @@ class OTForm(QWidget):
         layout.addLayout(row1)
 
         # --- OT Date + Time ---
-        self.ot_date = QDateEdit(calendarPopup=True)
+        self.ot_date = setup_dateedit(QDateEdit(calendarPopup=True))
         self.ot_date.setDate(QDate.currentDate())
         self.ot_date.setFixedWidth(100)
         self.ot_date.setEnabled(False)
 
-        self.start_time = QTimeEdit()
-        self.start_time.setDisplayFormat("HH:mm:ss")
-        self.start_time.setTime(QTime(17, 0))
+        self.start_time = setup_timeedit(QTimeEdit())
+        self.start_time.setTime(QTime(18, 0))
         self.start_time.setFixedWidth(80)
 
-        self.end_time = QTimeEdit()
-        self.end_time.setDisplayFormat("HH:mm:ss")
+        self.end_time = setup_timeedit(QTimeEdit())
         self.end_time.setTime(QTime(22, 0))
         self.end_time.setFixedWidth(80)
 
@@ -122,12 +128,21 @@ class OTForm(QWidget):
         # --- Table ---
         layout.addWidget(QLabel("ประวัติการบันทึก OT:"))
         self.table = QTableWidget()
-        self.table.setColumnCount(9)
+        self.table.setColumnCount(10)
         self.table.setHorizontalHeaderLabels([
             "เลือก", "รหัสพนักงาน", "ชื่อ", "แผนก",
-            "วันที่", "เวลาเริ่ม", "เวลาสิ้นสุด", "เหตุผล", "สถานะ"
+            "วันที่", "เวลาเริ่ม", "เวลาสิ้นสุด", "เหตุผล", "สถานะ", "บันทึกเวลา"
         ])
-        self.table.setColumnWidth(0, 20)  # fix checkbox column
+        self.table.setColumnWidth(0, 20)
+        self.table.setColumnWidth(1, 75)
+        self.table.setColumnWidth(2, 140)
+        self.table.setColumnWidth(3, 100)
+        self.table.setColumnWidth(4, 80)
+        self.table.setColumnWidth(5, 70)
+        self.table.setColumnWidth(6, 70)
+        self.table.setColumnWidth(7, 200)
+        self.table.setColumnWidth(8, 80)
+        self.table.setColumnWidth(9, 120)
         layout.addWidget(self.table)
 
         self.setLayout(layout)
@@ -138,11 +153,6 @@ class OTForm(QWidget):
         self.timer.timeout.connect(self.update_countdown)
         self.timer.timeout.connect(self.check_button_enabled)
         self.timer.start(1000)
-
-        # Countdown label
-        self.countdown_label = QLabel("เหลือเวลา ...")
-        self.countdown_label.setStyleSheet("font-size: 18pt; font-weight: bold; color: red;")
-        layout.insertWidget(1, self.countdown_label, alignment=Qt.AlignLeft)
 
     # ---------------- Helper ----------------
     def check_button_enabled(self):
@@ -192,12 +202,7 @@ class OTForm(QWidget):
             QMessageBox.warning(self, "ไม่พบการเลือก", "กรุณาเลือกอย่างน้อย 1 รายการ")
             return
 
-        reply = QMessageBox.question(
-            self, "ยืนยันการลบ",
-            f"คุณต้องการลบ {len(rows_to_delete)} รายการ ใช่หรือไม่?",
-            QMessageBox.Yes | QMessageBox.No
-        )
-        if reply != QMessageBox.Yes:
+        if not confirm_dialog(self, "ยืนยันการลบ", f"คุณต้องการลบ {len(rows_to_delete)} รายการ ใช่หรือไม่?"):
             return
 
         for row, request_id in sorted(rows_to_delete, reverse=True):
@@ -231,16 +236,20 @@ class OTForm(QWidget):
                 QTableWidgetItem(str(row.status)),
             ]
 
+            # ✅ เพิ่มคอลัมน์ submitted_at
+            submitted_text = ""
+            try:
+                submitted_text = row.submitted_at.strftime("%Y-%m-%d %H:%M")
+            except Exception:
+                submitted_text = str(row.submitted_at)
+            row_values.append(QTableWidgetItem(submitted_text))
+
             for j, item in enumerate(row_values):
                 if j == 6:  # ot_reason
                     item.setTextAlignment(Qt.AlignLeft | Qt.AlignVCenter)
                 else:
                     item.setTextAlignment(Qt.AlignCenter)
                 self.table.setItem(i, j + 1, item)
-
-        self.table.resizeColumnToContents(7)
-        if self.table.columnWidth(7) > 300:
-            self.table.setColumnWidth(7, 300)
 
     def clear_form(self, clear_employee=True):
         self.ot_reason.clear()
@@ -262,14 +271,8 @@ class OTForm(QWidget):
             self.countdown_label.setStyleSheet("color: gray; font-weight: bold;")
 
     def logout(self):
-        reply = QMessageBox.question(
-            self, "ยืนยันการออกจากระบบ",
-            "คุณแน่ใจหรือไม่ว่าต้องการออกจากระบบ?",
-            QMessageBox.Yes | QMessageBox.No, QMessageBox.No
-        )
-        if reply != QMessageBox.Yes:
+        if not confirm_dialog(self, "ยืนยันการออกจากระบบ", "คุณแน่ใจหรือไม่ว่าต้องการออกจากระบบ?"):
             return
-
         self.close()
-        self.login_window.clear_fields()   # ✅ เคลียร์ช่อง login
+        self.login_window.clear_fields()
         self.login_window.show()

@@ -18,7 +18,6 @@ def get_connection():
     )
     return pyodbc.connect(conn_str)
 
-
 # ---------------- INSERT ----------------
 def insert_ot_request(employee_code, employee_name, department, position,
                       ot_date, start_time, end_time, ot_reason, job_description):
@@ -35,7 +34,6 @@ def insert_ot_request(employee_code, employee_name, department, position,
     conn.commit()
     conn.close()
 
-
 # ---------------- SELECT ----------------
 def get_last_ot_requests(employee_code, limit=10):
     """ดึงประวัติการบันทึก OT ตาม employee_code"""
@@ -44,7 +42,8 @@ def get_last_ot_requests(employee_code, limit=10):
     cursor.execute(f"""
         SELECT TOP {limit}
             request_id, employee_code, employee_name,
-            department, position, ot_date, start_time, end_time, ot_reason, status
+            department, position, ot_date, start_time, end_time,
+            ot_reason, status, submitted_at
         FROM OT_Request
         WHERE employee_code = ?
         ORDER BY request_id DESC
@@ -52,7 +51,6 @@ def get_last_ot_requests(employee_code, limit=10):
     rows = cursor.fetchall()
     conn.close()
     return rows
-
 
 # ---------------- DELETE ----------------
 def delete_ot_request(request_id):
@@ -79,7 +77,6 @@ def get_pending_ot_requests():
     conn.close()
     return rows
 
-
 # ---------------- ADMIN UPDATE ----------------
 def update_ot_status(request_id, status, approver_code, reason=None):
     """อัพเดทสถานะ OT (Approve/Reject)"""
@@ -103,7 +100,7 @@ def update_ot_time(request_id, start_time, end_time):
         WHERE request_id = ?
     """, (start_time, end_time, request_id))
     conn.commit()
-    conn.close()    
+    conn.close()
 
 def get_ot_report(start_date=None, end_date=None, department=None, employee_code=None, status=None):
     conn = get_connection()
@@ -138,5 +135,34 @@ def get_ot_report(start_date=None, end_date=None, department=None, employee_code
 
     cursor.execute(query, tuple(params))
     rows = cursor.fetchall()
+    conn.close()
+    return rows
+
+# --------- รายการตัวเลือกกรองสำหรับ Report (แผนก/พนักงาน) ----------
+def get_departments():
+    """ดึงรายชื่อแผนกจาก OT_Request (Distinct)"""
+    conn = get_connection()
+    cursor = conn.cursor()
+    cursor.execute("""
+        SELECT DISTINCT department
+        FROM OT_Request
+        WHERE department IS NOT NULL AND LTRIM(RTRIM(department)) <> ''
+        ORDER BY department
+    """)
+    rows = [r[0] for r in cursor.fetchall()]
+    conn.close()
+    return rows
+
+def get_employees():
+    """ดึงรายชื่อพนักงานจาก OT_Request (Distinct/จับคู่ code-name)"""
+    conn = get_connection()
+    cursor = conn.cursor()
+    cursor.execute("""
+        SELECT DISTINCT employee_code, employee_name
+        FROM OT_Request
+        WHERE employee_code IS NOT NULL AND employee_name IS NOT NULL
+        ORDER BY employee_code
+    """)
+    rows = [(r[0], r[1]) for r in cursor.fetchall()]
     conn.close()
     return rows

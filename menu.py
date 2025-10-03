@@ -1,6 +1,7 @@
 from PyQt5.QtWidgets import QWidget, QVBoxLayout, QPushButton, QLabel, QMessageBox
 from ot_admin import OTAdminForm
 from ot_report import OTReportForm
+from utils import confirm_dialog
 
 class MenuForm(QWidget):
     def __init__(self, employee_code, employee_name, department, position, login_window):
@@ -48,22 +49,16 @@ class MenuForm(QWidget):
         report_window.show()
         self.open_windows.append(report_window)  # ✅ เก็บ reference
 
-
     def logout(self):
-        # ✅ Popup ยืนยัน
-        reply = QMessageBox.question(
-            self, "ยืนยันการออกจากระบบ",
-            "คุณแน่ใจหรือไม่ว่าต้องการออกจากระบบ?",
-            QMessageBox.Yes | QMessageBox.No, QMessageBox.No
-        )
-        if reply != QMessageBox.Yes:
+        # ✅ Popup ยืนยัน (ใช้ util กลาง)
+        if not confirm_dialog(self, "ยืนยันการออกจากระบบ", "คุณแน่ใจหรือไม่ว่าต้องการออกจากระบบ?"):
             return
 
         # ปิดทุกหน้าต่างที่เปิด
         for win in self.open_windows:
             try:
                 win.close()
-            except:
+            except Exception:
                 pass
         self.open_windows.clear()
 
