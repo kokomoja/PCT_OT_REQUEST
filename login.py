@@ -22,7 +22,7 @@ class LoginForm(QWidget):
         row_user = QHBoxLayout()
         row_user.addWidget(QLabel("Username:"))
         self.username = QLineEdit()
-        self.username.setText("040243")
+        self.username.setText("040053")
         row_user.addWidget(self.username)
         layout.addLayout(row_user)
 
@@ -30,6 +30,7 @@ class LoginForm(QWidget):
         row_pass = QHBoxLayout()
         row_pass.addWidget(QLabel("Password:"))
         self.password = QLineEdit()
+        self.password.setText("1")
         self.password.setEchoMode(QLineEdit.Password)
         row_pass.addWidget(self.password)
         layout.addLayout(row_pass)
