@@ -10,14 +10,13 @@ from db import get_connection
 
 class EmployeeForm(QWidget):
     """ฟอร์มเพิ่มรายชื่อพนักงาน สำหรับ Admin"""
-    SECRET_CODE = "0845535000721"  # ✅ รหัสลับที่ต้องยืนยันก่อนบันทึก
+    SECRET_CODE = "0845535000721"
 
     def __init__(self):
         super().__init__()
         self.setWindowTitle("👨‍💼 เพิ่มรายชื่อพนักงาน")
         self.resize(420, 400)
 
-        # === ฟอนต์หลัก ===
         self.setFont(QFont("TH Sarabun New", 16))
 
         layout = QVBoxLayout()
@@ -26,7 +25,6 @@ class EmployeeForm(QWidget):
         form.setFormAlignment(Qt.AlignTop)
         form.setSpacing(10)
 
-        # === ช่องกรอกข้อมูล ===
         self.txt_name = QLineEdit()
         self.txt_department = QLineEdit()
         self.txt_position = QLineEdit()
@@ -46,14 +44,12 @@ class EmployeeForm(QWidget):
 
         layout.addLayout(form)
 
-        # === ปุ่มบันทึก ===
         self.btn_save = QPushButton("💾 บันทึกข้อมูลพนักงาน")
         self.btn_save.clicked.connect(self.save_employee)
         layout.addWidget(self.btn_save, alignment=Qt.AlignCenter)
 
         self.setLayout(layout)
 
-    # ===================================================
     def save_employee(self):
         """ฟังก์ชันบันทึกข้อมูลพนักงานใหม่"""
         name = self.txt_name.text().strip()
@@ -63,12 +59,10 @@ class EmployeeForm(QWidget):
         pwd = self.txt_password.text().strip()
         auth = self.cmb_auth.currentText().strip()
 
-        # === ตรวจสอบค่าว่าง ===
         if not all([name, dept, pos, code, pwd, auth]):
             QMessageBox.warning(self, "⚠️ เตือน", "กรุณากรอกข้อมูลให้ครบทุกช่อง")
             return
 
-        # === ตรวจสอบรหัสลับก่อนบันทึก ===
         secret, ok = QInputDialog.getText(
             self, "🔒 ยืนยันรหัสลับ",
             "กรุณากรอกรหัสลับเพื่ออนุญาตการบันทึก:",
@@ -86,7 +80,6 @@ class EmployeeForm(QWidget):
             conn = get_connection()
             cursor = conn.cursor()
 
-            # ✅ ตรวจสอบรหัสซ้ำ
             cursor.execute("SELECT COUNT(*) FROM Employee WHERE employee_code = ?", (code,))
             exists = cursor.fetchone()[0]
             if exists > 0:
@@ -94,7 +87,6 @@ class EmployeeForm(QWidget):
                 conn.close()
                 return
 
-            # ✅ บันทึกข้อมูลใหม่
             cursor.execute("""
                 INSERT INTO Employee (employee_name, department, position, employee_code, employee_password, employee_auth)
                 VALUES (?, ?, ?, ?, ?, ?)

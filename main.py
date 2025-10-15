@@ -1,7 +1,7 @@
-from PyQt5.QtWidgets import (QHeaderView, QTableWidgetItem,
+from PyQt5.QtWidgets import (
     QWidget, QVBoxLayout, QHBoxLayout, QLineEdit, QTextEdit,
-    QPushButton, QMessageBox, QLabel, QDateEdit, QTimeEdit,
-    QTableWidget, QTableWidgetItem, QCheckBox, QSpacerItem, QSizePolicy
+    QPushButton, QMessageBox, QLabel, QDateEdit, QTimeEdit, QHeaderView,
+    QTableWidget, QTableWidgetItem, QCheckBox, QSpacerItem, QSizePolicy, QComboBox
 )
 from PyQt5.QtCore import QDate, QTime, QDateTime, QLocale, QTimer, Qt
 from db import insert_ot_request, get_last_ot_requests, delete_ot_request, update_ot_time_by_employee
@@ -47,13 +47,13 @@ class OTForm(QWidget):
         row1 = QHBoxLayout()
         row1.setAlignment(Qt.AlignLeft)  
         
-        row1.addWidget(QLabel("รหัสพนักงาน:"))
+        row1.addWidget(QLabel("รหัสพนักงาน :"))
         row1.addWidget(self.employee_code)
-        row1.addWidget(QLabel("ชื่อ–นามสกุล:"))
+        row1.addWidget(QLabel("ชื่อ–นามสกุล :"))
         row1.addWidget(self.employee_name)
-        row1.addWidget(QLabel("แผนก:"))
+        row1.addWidget(QLabel("แผนก :"))
         row1.addWidget(self.department)
-        row1.addWidget(QLabel("ตำแหน่ง:"))
+        row1.addWidget(QLabel("ตำแหน่ง :"))
         row1.addWidget(self.position)
 
         row1.addItem(QSpacerItem(20, 20, QSizePolicy.Expanding, QSizePolicy.Minimum))
@@ -62,7 +62,6 @@ class OTForm(QWidget):
         self.ot_date = setup_dateedit(QDateEdit(calendarPopup=True))
         self.ot_date.setDate(QDate.currentDate())
         self.ot_date.setFixedWidth(100)
-        self.ot_date.setEnabled(False)
 
         self.start_time = setup_timeedit(QTimeEdit())
         self.start_time.setTime(QTime(18, 0))
@@ -74,11 +73,11 @@ class OTForm(QWidget):
 
         row2 = QHBoxLayout()
         row2.setAlignment(Qt.AlignLeft)
-        row2.addWidget(QLabel("วันที่ทำ OT:"))
+        row2.addWidget(QLabel("วันที่ทำ OT :"))
         row2.addWidget(self.ot_date)
-        row2.addWidget(QLabel("เวลาเริ่ม:"))
+        row2.addWidget(QLabel("เวลาเริ่ม :"))
         row2.addWidget(self.start_time)
-        row2.addWidget(QLabel("เวลาสิ้นสุด:"))
+        row2.addWidget(QLabel("เวลาสิ้นสุด :"))
         row2.addWidget(self.end_time)
         layout.addLayout(row2)
 
@@ -87,12 +86,23 @@ class OTForm(QWidget):
         self.start_time.setLocale(locale)
         self.end_time.setLocale(locale)
 
-        layout.addWidget(QLabel("เหตุผลการขอ OT:"))
-        self.ot_reason = QTextEdit()
-        self.ot_reason.setFixedHeight(60)
-        layout.addWidget(self.ot_reason)
+        row_reason = QHBoxLayout()
+        row_reason.setAlignment(Qt.AlignLeft)
 
-        layout.addWidget(QLabel("รายละเอียดงาน:"))
+        row_reason.addWidget(QLabel("เหตุผลในการขอโอที :"))
+        self.ot_reason = QComboBox()
+        self.ot_reason.addItems([
+            "ทำงานล่วงเวลาในเวลาทำการ",
+            "ทำงานในวันหยุดประจำสัปดาห์",
+            "ทำงานในวันหยุดนักขัตฤกษ์"
+        ])
+        self.ot_reason.setFixedWidth(300)
+        row_reason.addWidget(self.ot_reason)
+
+        row_reason.addItem(QSpacerItem(20, 20, QSizePolicy.Expanding, QSizePolicy.Minimum))
+        layout.addLayout(row_reason)
+
+        layout.addWidget(QLabel("รายละเอียดงาน :"))
         self.job_description = QTextEdit()
         self.job_description.setFixedHeight(100)
         layout.addWidget(self.job_description)
@@ -203,7 +213,6 @@ class OTForm(QWidget):
         self.timer.timeout.connect(self.check_button_enabled)
         self.timer.start(1000)
 
-
     def check_button_enabled(self):
         """ตรวจเวลาและสถานะ checkbox เพื่อควบคุมปุ่มบันทึก"""
         now = QTime.currentTime()
@@ -217,13 +226,12 @@ class OTForm(QWidget):
             self.save_info.setText("🚫 ปิดการบันทึกขณะเลือกแก้ไขข้อมูล OT")
             return
 
-        if QTime(12, 0, 0) <= now <= QTime(23, 59, 59):
+        if QTime(8, 0, 0) <= now <= QTime(23, 59, 59):
             self.save_btn.setEnabled(True)
             self.save_info.setText("")
         else:
             self.save_btn.setEnabled(False)
             self.save_info.setText("⏰ สามารถบันทึกได้เฉพาะเวลา 12:00–24:00 น.")
-
 
     def can_delete_today(self, request_date):
         return request_date == QDate.currentDate()
@@ -237,14 +245,13 @@ class OTForm(QWidget):
             ot_date = thai_to_arabic(self.ot_date.date().toString("yyyy-MM-dd"))
             start_time = "00:00:00"  # ✅ ค่าเริ่มต้น
             end_time = "00:00:00"
-            reason = self.ot_reason.toPlainText()
+            reason = self.ot_reason.currentText()
             job = self.job_description.toPlainText()
 
             insert_ot_request(emp_code, emp_name, dept, pos, ot_date, start_time, end_time, reason, job)
             QMessageBox.information(self, "สำเร็จ", "บันทึกคำขอ OT เรียบร้อย (เวลา 00:00:00)")
             self.load_last_requests(emp_code)
-            self.check_checkbox_selection()
-        
+            self.check_checkbox_selection()        
         except Exception as e:
             QMessageBox.critical(self, "ผิดพลาด", f"เกิดข้อผิดพลาด: {e}")
 
@@ -255,24 +262,19 @@ class OTForm(QWidget):
             if checkbox and checkbox.isChecked():
                 request_id = self.table.item(i, 1).data(Qt.UserRole)
                 rows_to_delete.append((i, request_id))
-
         if not rows_to_delete:
             QMessageBox.warning(self, "ไม่พบการเลือก", "กรุณาเลือกอย่างน้อย 1 รายการ")
             return
-
         if not confirm_dialog(self, "ยืนยันการลบ", f"คุณต้องการลบ {len(rows_to_delete)} รายการ ใช่หรือไม่?"):
             return
-
         for row, request_id in sorted(rows_to_delete, reverse=True):
             delete_ot_request(request_id)
             self.table.removeRow(row)
-
         QMessageBox.information(self, "สำเร็จ", "ลบคำขอที่เลือกเรียบร้อยแล้ว ✅")
 
     def update_selected_time(self):
         """อัปเดตเวลาเฉพาะรายการที่ถูกติ๊กเท่านั้น"""
         selected = []
-
         for i in range(self.table.rowCount()):
             chk = self.table.cellWidget(i, 0)
             if chk and chk.isChecked():  
@@ -287,7 +289,6 @@ class OTForm(QWidget):
         emp_code = self.employee_code.text().strip()
         new_start = self.start_time.time().toString("HH:mm:ss")
         new_end = self.end_time.time().toString("HH:mm:ss")
-
         updated = 0
         errors = []
 
@@ -301,8 +302,6 @@ class OTForm(QWidget):
             QMessageBox.information(self, "สำเร็จ", f"อัปเดตเวลา {updated} รายการเรียบร้อย")
         if errors:
             QMessageBox.warning(self, "ข้อผิดพลาดบางส่วน", "\n".join(errors))
-
-        # ✅ โหลดข้อมูลใหม่
         self.load_last_requests(emp_code)
         self.check_checkbox_selection()
 
@@ -311,7 +310,6 @@ class OTForm(QWidget):
         """โหลดประวัติคำขอ OT ของพนักงาน"""
         rows = get_last_ot_requests(employee_code, 10) if employee_code else []
         self.table.setRowCount(len(rows))
-
         for i, row in enumerate(rows):
             checkbox = QCheckBox()
             checkbox.setStyleSheet("margin-left:10px;")
@@ -329,6 +327,11 @@ class OTForm(QWidget):
                     checkbox.setToolTip(f"เกินกำหนด 3 วัน ({days_diff} วันแล้ว) - ไม่สามารถแก้ไขได้")
 
             self.table.setCellWidget(i, 0, checkbox)
+
+
+            blank_item = QTableWidgetItem("")
+            blank_item.setFlags(Qt.NoItemFlags)  
+            self.table.setItem(i, 0, blank_item)
 
             item_code = QTableWidgetItem(str(row.employee_code))
             item_code.setData(Qt.UserRole, row.request_id)
@@ -386,8 +389,7 @@ class OTForm(QWidget):
         self.table.setColumnWidth(8, 500)
         header = self.table.horizontalHeader()
         header.setSectionResizeMode(0, QHeaderView.Fixed)
-        self.table.setColumnWidth(0, 30)
-
+        self.table.setColumnWidth(0, 20)
 
     def check_checkbox_selection(self):
         """ตรวจ checkbox ทั้งหมด แล้วปรับสถานะปุ่มต่าง ๆ"""
@@ -400,7 +402,7 @@ class OTForm(QWidget):
         self.delete_btn.setEnabled(any_checked)
 
     def clear_form(self, clear_employee=True):
-        self.ot_reason.clear()
+        self.ot_reason.setCurrentIndex(0)
         self.job_description.clear()
         self.ot_date.setDate(QDate.currentDate())
         self.start_time.setTime(QTime(17, 0))

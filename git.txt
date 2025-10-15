@@ -1,8 +1,11 @@
-cd PCT_OT_REQUEST
+cd C:\ProjectPCT\PCT-OT\ot_request_app
 git init
-
+git remote remove origin
+git remote add origin https://github.com/kokomoja/PCT_OT_REQUEST.git
 git add .
-
-git commit -m "Initial commit with full OT Request system (Excel/PDF export fixed)"
+git commit -m "commit for OT Request App"
 git branch -M main
-git push -u origin main
+git push -u origin main --force
+
+python login.py
+

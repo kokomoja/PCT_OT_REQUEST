@@ -11,18 +11,15 @@ class MenuForm(QWidget):
         self.setWindowTitle("MENU")
         self.resize(400, 300)
 
-        # เก็บ reference หน้า Login
         self.login_window = login_window
 
-        # ✅ เก็บหน้าต่างที่เปิดอยู่ทั้งหมด
         self.open_windows = []
 
         layout = QVBoxLayout()
 
-        # ✅ กลุ่มข้อมูลพนักงาน
         info_layout = QVBoxLayout()
-        info_layout.setAlignment(Qt.AlignLeft | Qt.AlignTop)  # ชิดซ้ายบน
-        info_layout.setSpacing(4)  # ระยะห่างระหว่างบรรทัด (px)
+        info_layout.setAlignment(Qt.AlignLeft | Qt.AlignTop)  
+        info_layout.setSpacing(4)  
 
         label_welcome = QLabel(f"ยินดีต้อนรับ Admin: {employee_name} ({employee_code})")
         label_dept = QLabel(f"แผนก: {department}")

@@ -1,7 +1,6 @@
 import pyodbc
 from datetime import datetime, time
 
-# ================= DATABASE CONFIG =================
 DB_CONFIG = {
     "server": "192.168.99.253,1433",
     "database": "otPCT",
@@ -20,9 +19,6 @@ def get_connection():
     )
     return pyodbc.connect(conn_str)
 
-# ===================================================
-# INSERT OT REQUEST
-# ===================================================
 def insert_ot_request(employee_code, employee_name, department, position,
                       ot_date, start_time, end_time, ot_reason, job_description):
     conn = get_connection()
@@ -37,9 +33,6 @@ def insert_ot_request(employee_code, employee_name, department, position,
     conn.commit()
     conn.close()
 
-# ===================================================
-# SELECT OT RECORDS
-# ===================================================
 def get_last_ot_requests(employee_code, limit=10):
     conn = get_connection()
     cursor = conn.cursor()
@@ -65,10 +58,6 @@ def get_last_ot_requests(employee_code, limit=10):
     conn.close()
     return rows
 
-
-# ===================================================
-# DELETE OT RECORD
-# ===================================================
 def delete_ot_request(request_id):
     conn = get_connection()
     cursor = conn.cursor()
@@ -76,9 +65,6 @@ def delete_ot_request(request_id):
     conn.commit()
     conn.close()
 
-# ===================================================
-# ADMIN FUNCTIONS
-# ===================================================
 def get_all_ot_requests(status=None):
     """ดึงคำขอ OT ทุกสถานะ หรือเฉพาะสถานะที่กำหนด"""
     conn = get_connection()
@@ -120,16 +106,12 @@ def update_ot_time(request_id, start_time, end_time):
     conn.commit()
     conn.close()
 
-# ===================================================
-# EMPLOYEE UPDATE TIME (NEW VERSION)
-# ===================================================
 def update_ot_time_by_employee(request_id, start_time, end_time, employee_code):
     """พนักงานอัปเดตเวลา OT ของตัวเอง (เฉพาะ Pending หรือ Approved)"""
     conn = get_connection()
     cursor = conn.cursor()
 
     try:
-        # 🔍 แปลงเวลาให้เป็นชนิด datetime.time
         def to_time(value):
             if isinstance(value, time):
                 return value
@@ -148,10 +130,8 @@ def update_ot_time_by_employee(request_id, start_time, end_time, employee_code):
         start_t = to_time(start_time)
         end_t = to_time(end_time)
 
-        # 🔍 Debug log
         print(f"🕒 DEBUG SQL Update => start={start_t}, end={end_t}, req_id={request_id}, emp={employee_code}")
 
-        # ✅ ตรวจสถานะ record ก่อนอัปเดต (เพื่อ debug)
         cursor.execute("""
             SELECT status, employee_code
             FROM OT_Request
@@ -164,7 +144,6 @@ def update_ot_time_by_employee(request_id, start_time, end_time, employee_code):
         record_status, record_emp = result
         print(f"🕒 DEBUG Update OT: req_id={request_id}, emp={record_emp}, status={record_status}")
 
-        # ✅ อนุญาตเฉพาะ Pending และ Approved
         cursor.execute("""
             UPDATE OT_Request
             SET start_time = ?, end_time = ?
@@ -185,9 +164,6 @@ def update_ot_time_by_employee(request_id, start_time, end_time, employee_code):
         conn.close()
         raise Exception(f"อัปเดตเวลาไม่สำเร็จ: {e}")
 
-# ===================================================
-# ADMIN UPDATE DETAIL
-# ===================================================
 def update_ot_detail(request_id, start_time, end_time, ot_reason, job_description):
     """อัปเดตเวลาและรายละเอียดงาน (ใช้เวลาแก้ไขในหน้าผู้ดูแล)"""
     conn = get_connection()
@@ -200,17 +176,28 @@ def update_ot_detail(request_id, start_time, end_time, ot_reason, job_descriptio
     conn.commit()
     conn.close()
 
-# ===================================================
-# REPORTS
-# ===================================================
 def get_ot_report(start_date=None, end_date=None, department=None, employee_code=None, status=None):
     conn = get_connection()
     cursor = conn.cursor()
     query = """
-        SELECT request_id, employee_code, employee_name, department, position,
-               ot_date, start_time, end_time,
-               DATEDIFF(MINUTE, start_time, end_time) / 60.0 AS ot_hours,
-               ot_reason, status
+        SELECT 
+            request_id, employee_code, employee_name, department, position,
+            ot_date, start_time, end_time,
+            -- ✅ คำนวณชั่วโมง OT รองรับข้ามวัน + กัน NULL/ว่าง
+            CASE 
+                WHEN TRY_CONVERT(TIME, start_time) IS NULL OR TRY_CONVERT(TIME, end_time) IS NULL THEN 0
+                ELSE 
+                    DATEDIFF(
+                        MINUTE,
+                        CAST(TRY_CONVERT(TIME, start_time) AS DATETIME),
+                        CASE 
+                            WHEN TRY_CONVERT(TIME, end_time) < TRY_CONVERT(TIME, start_time)
+                                 THEN DATEADD(DAY, 1, CAST(TRY_CONVERT(TIME, end_time) AS DATETIME))
+                            ELSE CAST(TRY_CONVERT(TIME, end_time) AS DATETIME)
+                        END
+                    ) / 60.0
+            END AS ot_hours,
+            ot_reason, status
         FROM OT_Request
         WHERE 1=1
     """
@@ -239,9 +226,6 @@ def get_ot_report(start_date=None, end_date=None, department=None, employee_code
     conn.close()
     return rows
 
-# ===================================================
-# FILTERS FOR REPORT
-# ===================================================
 def get_departments():
     conn = get_connection()
     cursor = conn.cursor()

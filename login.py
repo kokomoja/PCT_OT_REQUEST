@@ -8,7 +8,7 @@ from PyQt5.QtCore import Qt
 from PyQt5.QtGui import QFont, QFontDatabase
 from db import get_connection
 from main import OTForm
-from menu import MenuForm   # ✅ ใช้ MenuForm จาก menu.py
+from menu import MenuForm  
 
 class LoginForm(QWidget):
     def __init__(self):
@@ -18,7 +18,6 @@ class LoginForm(QWidget):
 
         layout = QVBoxLayout()
 
-        # --- Username ---
         row_user = QHBoxLayout()
         row_user.addWidget(QLabel("Username:"))
         self.username = QLineEdit()
@@ -26,7 +25,6 @@ class LoginForm(QWidget):
         row_user.addWidget(self.username)
         layout.addLayout(row_user)
 
-        # --- Password ---
         row_pass = QHBoxLayout()
         row_pass.addWidget(QLabel("Password:"))
         self.password = QLineEdit()
@@ -35,12 +33,10 @@ class LoginForm(QWidget):
         row_pass.addWidget(self.password)
         layout.addLayout(row_pass)
 
-        # --- Show password ---
         self.show_password = QCheckBox("แสดงรหัสผ่าน")
         self.show_password.stateChanged.connect(self.toggle_password)
         layout.addWidget(self.show_password)
 
-        # --- Login button ---
         self.login_btn = QPushButton("เข้าสู่ระบบ")
         self.login_btn.clicked.connect(self.check_login)
         layout.addWidget(self.login_btn, alignment=Qt.AlignCenter)
@@ -85,7 +81,6 @@ class LoginForm(QWidget):
 
                 self.hide()
                 if emp_auth and emp_auth.strip().lower() == "admin":
-                    # ✅ ส่งครบตาม menu.py
                     self.menu_window = MenuForm(emp_code, emp_name, dept, pos, self)
                     self.menu_window.show()
                 else:
@@ -105,7 +100,6 @@ class LoginForm(QWidget):
 if __name__ == "__main__":
     app = QApplication(sys.argv)
 
-    # โหลดฟอนต์ไทย
     font_path = os.path.join(os.path.dirname(__file__), "fonts", "THSarabunNew.ttf")
     font_id = QFontDatabase.addApplicationFont(font_path)
 

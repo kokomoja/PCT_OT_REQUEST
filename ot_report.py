@@ -17,9 +17,8 @@ class OTReportForm(QWidget):
 
         layout = QVBoxLayout()
 
-        # ---- Filter ----
         row_filter = QHBoxLayout()
-        row_filter.setAlignment(Qt.AlignLeft)   # ✅ ชิดซ้ายทั้งหมด
+        row_filter.setAlignment(Qt.AlignLeft)  
 
         self.start_date = setup_dateedit(QDateEdit(calendarPopup=True))
         self.start_date.setDate(QDate.currentDate().addMonths(-1))
@@ -47,7 +46,6 @@ class OTReportForm(QWidget):
         self.btn_load = QPushButton("ดูรายงาน")
         self.btn_load.clicked.connect(self.load_report)
 
-        # ✅ เพิ่ม widget เรียงชิดซ้าย
         row_filter.addWidget(QLabel("เริ่ม:"))
         row_filter.addWidget(self.start_date)
         row_filter.addWidget(QLabel("สิ้นสุด:"))
@@ -62,7 +60,6 @@ class OTReportForm(QWidget):
 
         layout.addLayout(row_filter)
 
-        # ---- Table ----
         self.table = QTableWidget()
         self.table.setColumnCount(11)
         self.table.setHorizontalHeaderLabels([
@@ -71,7 +68,6 @@ class OTReportForm(QWidget):
         ])
         layout.addWidget(self.table)
 
-        # ---- Export ----
         btn_layout = QHBoxLayout()
         self.btn_excel = QPushButton("Export Excel")
         self.btn_pdf = QPushButton("Export PDF")
@@ -104,20 +100,16 @@ class OTReportForm(QWidget):
         for i, row in enumerate(rows):
             for j, value in enumerate(row):
                 text = thai_to_arabic(str(value))
-
-                if j == 8:  # ชั่วโมง OT
+                if j == 8:  
                     try:
                         text = f"{float(value):.2f}"
                     except Exception:
                         text = "0.00"
-
                 item = QTableWidgetItem(text)
-
                 if j in [2, 9]:
                     item.setTextAlignment(Qt.AlignLeft | Qt.AlignVCenter)
                 else:
                     item.setTextAlignment(Qt.AlignCenter)
-
                 if j == 10:
                     status_txt = str(value)
                     if status_txt == "Approved":
@@ -152,10 +144,9 @@ class OTReportForm(QWidget):
             "วันที่", "เวลาเริ่ม", "เวลาสิ้นสุด", "ชั่วโมง OT", "เหตุผล", "สถานะ"
         ])
 
-        # ✅ เปิด dialog ให้เลือกที่บันทึก
         file_path, _ = QFileDialog.getSaveFileName(self, "บันทึกไฟล์ Excel", "ot_report.xlsx", "Excel Files (*.xlsx)")
         if not file_path:
-            return  # กดยกเลิก
+            return  
 
         try:
             df.to_excel(file_path, index=False)
@@ -175,14 +166,12 @@ class OTReportForm(QWidget):
             from reportlab.pdfbase.ttfonts import TTFont
             import os
 
-            # ✅ โหลดฟอนต์ภาษาไทย (ทั้ง 4 แบบ)
             font_dir = os.path.join(os.path.dirname(__file__), "fonts")
             pdfmetrics.registerFont(TTFont("THSarabunNew", os.path.join(font_dir, "THSarabunNew.ttf")))
             pdfmetrics.registerFont(TTFont("THSarabunNew-Bold", os.path.join(font_dir, "THSarabunNew Bold.ttf")))
             pdfmetrics.registerFont(TTFont("THSarabunNew-Italic", os.path.join(font_dir, "THSarabunNew Italic.ttf")))
             pdfmetrics.registerFont(TTFont("THSarabunNew-BoldItalic", os.path.join(font_dir, "THSarabunNew BoldItalic.ttf")))
 
-            # ✅ กำหนด stylesheet ที่รองรับภาษาไทย
             styles = getSampleStyleSheet()
             styles.add(ParagraphStyle(name="ThaiNormal", fontName="THSarabunNew", fontSize=14, leading=16))
             styles.add(ParagraphStyle(name="ThaiTitle", fontName="THSarabunNew-Bold", fontSize=18, leading=20, alignment=1))
@@ -202,10 +191,9 @@ class OTReportForm(QWidget):
                 QMessageBox.warning(self, "เตือน", "ไม่มีข้อมูลสำหรับ Export")
                 return
 
-            # ✅ เปิด dialog ให้เลือกที่บันทึก
             file_path, _ = QFileDialog.getSaveFileName(self, "บันทึกไฟล์ PDF", "ot_report.pdf", "PDF Files (*.pdf)")
             if not file_path:
-                return  # กดยกเลิก
+                return 
 
             doc = SimpleDocTemplate(
                 file_path,

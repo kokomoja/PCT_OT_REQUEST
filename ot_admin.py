@@ -20,27 +20,23 @@ class OTAdminForm(QWidget):
         layout.setContentsMargins(5, 5, 5, 5)
         layout.setSpacing(10)
 
-        # === Filter Row ===
         filter_row = QHBoxLayout()
         filter_row.setAlignment(Qt.AlignLeft)
         filter_row.setSpacing(15)
         filter_row.setContentsMargins(0, 0, 0, 0)
 
-        # --- Filter: แผนก (ComboBox) ---
         lbl_dept = QLabel("แผนก:")
         self.cbb_dept = QComboBox()
         self.cbb_dept.setFixedWidth(180)
         filter_row.addWidget(lbl_dept)
         filter_row.addWidget(self.cbb_dept)
 
-        # --- Filter: ชื่อพนักงาน (ComboBox) ---
         lbl_name = QLabel("ชื่อพนักงาน:")
         self.cbb_name = QComboBox()
         self.cbb_name.setFixedWidth(200)
         filter_row.addWidget(lbl_name)
         filter_row.addWidget(self.cbb_name)
 
-        # --- Filter: วันที่ ---
         lbl_from = QLabel("วันที่ตั้งแต่:")
         self.date_from = QDateEdit(calendarPopup=True)
         self.date_from.setDate(QDate.currentDate().addDays(-7))
@@ -53,7 +49,6 @@ class OTAdminForm(QWidget):
         self.date_to.setDisplayFormat("yyyy-MM-dd")
         self.date_to.setFixedWidth(120)
 
-        # ✅ แสดงเลขอารบิก
         locale = QLocale(QLocale.English, QLocale.UnitedStates)
         self.date_from.setLocale(locale)
         self.date_to.setLocale(locale)
@@ -63,7 +58,6 @@ class OTAdminForm(QWidget):
         filter_row.addWidget(lbl_to)
         filter_row.addWidget(self.date_to)
 
-        # --- Filter: สถานะ ---
         lbl_status = QLabel("สถานะ:")
         self.cmb_status = QComboBox()
         self.cmb_status.addItems(["ทั้งหมด", "Pending", "Approved", "Rejected"])
@@ -71,7 +65,6 @@ class OTAdminForm(QWidget):
         filter_row.addWidget(lbl_status)
         filter_row.addWidget(self.cmb_status)
 
-        # --- ปุ่มเคลียร์ ---
         self.btn_clear = QPushButton("🧹 เคลียร์ตัวกรอง")
         self.btn_clear.setFixedWidth(140)
         self.btn_clear.clicked.connect(self.clear_filters)
@@ -79,7 +72,6 @@ class OTAdminForm(QWidget):
 
         layout.addLayout(filter_row)
 
-        # === Table ===
         self.table = QTableWidget()
         self.table.setColumnCount(13)
         self.table.setHorizontalHeaderLabels([
@@ -96,13 +88,11 @@ class OTAdminForm(QWidget):
         self.table.setAlternatingRowColors(True)
         layout.addWidget(self.table)
 
-        # === Buttons Row ===
         btn_row = QHBoxLayout()
         btn_row.setAlignment(Qt.AlignLeft)
         btn_row.setSpacing(15)
         btn_row.setContentsMargins(0, 0, 0, 0)
         
-        # --- ปุ่มต่าง ๆ ---
         self.btn_approve = QPushButton("✅ อนุมัติที่เลือก")
         self.btn_approve.setFixedSize(180, 40)
         self.btn_approve.setStyleSheet("""
@@ -155,15 +145,14 @@ class OTAdminForm(QWidget):
             QPushButton:hover { background-color: #FB8C00; }
         """)
 
-        # --- Label + Input ---
         lbl_reason = QLabel("เหตุผลปฏิเสธ:")
-        lbl_reason.setAlignment(Qt.AlignVCenter | Qt.AlignLeft)  # ✅ บังคับชิดซ้าย
+        lbl_reason.setAlignment(Qt.AlignVCenter | Qt.AlignLeft)  
         lbl_reason.setFixedWidth(110)
 
         self.reject_reason = QLineEdit()
         self.reject_reason.setPlaceholderText("เหตุผลปฏิเสธ (ถ้ามี)")
         self.reject_reason.setFixedSize(400, 40)
-        self.reject_reason.setAlignment(Qt.AlignLeft)  # ✅ บังคับข้อความในช่องชิดซ้าย
+        self.reject_reason.setAlignment(Qt.AlignLeft) 
         self.reject_reason.setStyleSheet("""
             QLineEdit {
                 font-size: 16pt;
@@ -173,13 +162,11 @@ class OTAdminForm(QWidget):
             }
         """)
 
-        # --- เชื่อมปุ่มกับฟังก์ชัน ---
         self.btn_approve.clicked.connect(self.approve_request)
         self.btn_reject.clicked.connect(self.reject_request)
         self.btn_update.clicked.connect(self.update_detail_request)
         self.btn_reset.clicked.connect(self.reset_status_request)
 
-        # --- เพิ่ม widgets เข้า layout ---
         btn_row.addWidget(self.btn_approve)
         btn_row.addWidget(self.btn_reject)
         btn_row.addWidget(self.btn_update)
@@ -187,28 +174,22 @@ class OTAdminForm(QWidget):
         btn_row.addWidget(lbl_reason)
         btn_row.addWidget(self.reject_reason)
 
-        # ✅ เพิ่ม stretch เล็กน้อยกันช่อง drift ไปขวา
         btn_row.addStretch(1)
         layout.addLayout(btn_row)
 
         self.setLayout(layout)
 
-        # === Event binding สำหรับอัปเดตอัตโนมัติ ===
         self.cmb_status.currentIndexChanged.connect(self.load_requests)
         self.cbb_dept.currentIndexChanged.connect(self.load_requests)
         self.cbb_name.currentIndexChanged.connect(self.load_requests)
         self.date_from.dateChanged.connect(self.load_requests)
         self.date_to.dateChanged.connect(self.load_requests)
-
-        # โหลดครั้งแรก
         self.load_requests()
 
-        # Auto refresh ทุก 60 วินาที
         self.timer = QTimer(self)
         self.timer.timeout.connect(self.load_requests)
         self.timer.start(60000)
 
-    # ---------- Helper: เติมค่าตัวเลือกใน ComboBox ----------
     def populate_filter_options(self, base_rows):
         """เติม cbb_dept ด้วยแผนก และ cbb_name ด้วยชื่อพนักงาน"""
         prev_dept = self.cbb_dept.currentText() if self.cbb_dept.count() else "ทั้งหมด"
@@ -243,7 +224,6 @@ class OTAdminForm(QWidget):
         self.cbb_dept.blockSignals(False)
         self.cbb_name.blockSignals(False)
 
-    # ---------- โหลดข้อมูล ----------
     def load_requests(self):
         """โหลดคำขอ OT ตามตัวกรอง (อัปเดตอัตโนมัติ)"""
         status = self.cmb_status.currentText()
@@ -257,11 +237,10 @@ class OTAdminForm(QWidget):
 
         base_rows = []
         for row in rows:
-            ot_date = thai_to_arabic(str(row[5]))  # ot_date index=5
+            ot_date = thai_to_arabic(str(row[5]))  
             if date_from <= ot_date <= date_to:
                 base_rows.append(row)
 
-        # เติม combo options จากฐานข้อมูลปัจจุบัน
         self.populate_filter_options(base_rows)
 
         sel_dept = self.cbb_dept.currentText().strip()
@@ -277,7 +256,6 @@ class OTAdminForm(QWidget):
                 continue
             filtered_rows.append(r)
 
-        # แสดงในตาราง
         self.table.setRowCount(len(filtered_rows))
         for i, row in enumerate(filtered_rows):
             checkbox = QCheckBox()
@@ -316,14 +294,10 @@ class OTAdminForm(QWidget):
 
         self.table.resizeColumnsToContents()
 
-        # ✅ ล็อกคอลัมน์ "เลือก" ไม่ให้ปรับขนาดได้
         header = self.table.horizontalHeader()
         header.setSectionResizeMode(0, QHeaderView.Fixed)
         self.table.setColumnWidth(0, 30)
         
-        
-
-    # ---------- ปุ่มเคลียร์ ----------
     def clear_filters(self):
         """รีเซ็ตค่าฟิลเตอร์ทั้งหมด"""
         self.cbb_dept.blockSignals(True)
@@ -345,7 +319,6 @@ class OTAdminForm(QWidget):
 
         self.load_requests()
 
-    # ---------- Helper ----------
     def get_selected_request_ids(self):
         selected = []
         for i in range(self.table.rowCount()):
@@ -355,7 +328,6 @@ class OTAdminForm(QWidget):
                 selected.append((i, req_id))
         return selected
 
-    # ---------- Actions ----------
     def approve_request(self):
         selected = self.get_selected_request_ids()
         if not selected:
