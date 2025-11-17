@@ -9,6 +9,8 @@ from PyQt5.QtGui import QFont, QFontDatabase
 from db import get_connection
 from main import OTForm
 from menu import MenuForm  
+from dotenv import load_dotenv
+load_dotenv()
 
 class LoginForm(QWidget):
     def __init__(self):
@@ -97,10 +99,16 @@ class LoginForm(QWidget):
         except Exception as e:
             QMessageBox.critical(self, "ผิดพลาด", f"Database error: {e}")
 
+def resource_path(relative_path):
+        """ หาไฟล์ได้ทั้งตอนรัน python ปกติ และตอนรัน .exe """
+        if hasattr(sys, '_MEIPASS'):   # โหมด exe
+            return os.path.join(sys._MEIPASS, relative_path)
+        return os.path.join(os.path.abspath("."), relative_path)
+
 if __name__ == "__main__":
     app = QApplication(sys.argv)
 
-    font_path = os.path.join(os.path.dirname(__file__), "fonts", "THSarabunNew.ttf")
+    font_path = resource_path("fonts/THSarabunNew.ttf")
     font_id = QFontDatabase.addApplicationFont(font_path)
 
     if font_id == -1:

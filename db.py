@@ -1,12 +1,17 @@
 import pyodbc
+import os
+from dotenv import load_dotenv
 from datetime import datetime, time
 
+# โหลด .env
+load_dotenv()
+
 DB_CONFIG = {
-    "server": "192.168.99.253,1433",
-    "database": "otPCT",
-    "username": "sa",
-    "password": "@1234",
-    "driver": "{ODBC Driver 17 for SQL Server}"
+    "driver": os.getenv("DB_DRIVER", "{ODBC Driver 17 for SQL Server}"),
+    "server": os.getenv("DB_SERVER", "localhost,1433"),
+    "database": os.getenv("DB_NAME", "otPCT"),
+    "username": os.getenv("DB_USER", "sa"),
+    "password": os.getenv("DB_PASS", ""),
 }
 
 def get_connection():
@@ -18,6 +23,11 @@ def get_connection():
         f"PWD={DB_CONFIG['password']}"
     )
     return pyodbc.connect(conn_str)
+
+
+# ================================================
+#     ฟังก์ชันสำหรับ OT Request (ต้องมี)
+# ================================================
 
 def insert_ot_request(employee_code, employee_name, department, position,
                       ot_date, start_time, end_time, ot_reason, job_description):
@@ -33,6 +43,7 @@ def insert_ot_request(employee_code, employee_name, department, position,
     conn.commit()
     conn.close()
 
+
 def get_last_ot_requests(employee_code, limit=10):
     conn = get_connection()
     cursor = conn.cursor()
@@ -47,7 +58,7 @@ def get_last_ot_requests(employee_code, limit=10):
             start_time,
             end_time,
             ot_reason,
-            job_description,   -- ✅ เพิ่มฟิลด์นี้
+            job_description,
             status,
             submitted_at
         FROM OT_Request
@@ -58,6 +69,7 @@ def get_last_ot_requests(employee_code, limit=10):
     conn.close()
     return rows
 
+
 def delete_ot_request(request_id):
     conn = get_connection()
     cursor = conn.cursor()
@@ -65,8 +77,8 @@ def delete_ot_request(request_id):
     conn.commit()
     conn.close()
 
+
 def get_all_ot_requests(status=None):
-    """ดึงคำขอ OT ทุกสถานะ หรือเฉพาะสถานะที่กำหนด"""
     conn = get_connection()
     cursor = conn.cursor()
     query = """
@@ -78,11 +90,14 @@ def get_all_ot_requests(status=None):
     if status:
         query += " WHERE status = ?"
         params.append(status)
+
     query += " ORDER BY submitted_at DESC"
+
     cursor.execute(query, tuple(params))
     rows = cursor.fetchall()
     conn.close()
     return rows
+
 
 def update_ot_status(request_id, status, approver_code, reason=None):
     conn = get_connection()
@@ -95,16 +110,18 @@ def update_ot_status(request_id, status, approver_code, reason=None):
     conn.commit()
     conn.close()
 
-def update_ot_time(request_id, start_time, end_time):
+
+def update_ot_detail(request_id, start_time, end_time, ot_reason, job_description):
     conn = get_connection()
     cursor = conn.cursor()
     cursor.execute("""
         UPDATE OT_Request
-        SET start_time = ?, end_time = ?
+        SET start_time = ?, end_time = ?, ot_reason = ?, job_description = ?
         WHERE request_id = ?
-    """, (start_time, end_time, request_id))
+    """, (start_time, end_time, ot_reason, job_description, request_id))
     conn.commit()
     conn.close()
+
 
 def update_ot_time_by_employee(request_id, start_time, end_time, employee_code):
     """พนักงานอัปเดตเวลา OT ของตัวเอง (เฉพาะ Pending หรือ Approved)"""
@@ -130,8 +147,6 @@ def update_ot_time_by_employee(request_id, start_time, end_time, employee_code):
         start_t = to_time(start_time)
         end_t = to_time(end_time)
 
-        print(f"🕒 DEBUG SQL Update => start={start_t}, end={end_t}, req_id={request_id}, emp={employee_code}")
-
         cursor.execute("""
             SELECT status, employee_code
             FROM OT_Request
@@ -140,9 +155,6 @@ def update_ot_time_by_employee(request_id, start_time, end_time, employee_code):
         result = cursor.fetchone()
         if not result:
             raise Exception("ไม่พบคำขอ OT ที่ระบุ")
-
-        record_status, record_emp = result
-        print(f"🕒 DEBUG Update OT: req_id={request_id}, emp={record_emp}, status={record_status}")
 
         cursor.execute("""
             UPDATE OT_Request
@@ -153,28 +165,16 @@ def update_ot_time_by_employee(request_id, start_time, end_time, employee_code):
         """, (start_t, end_t, request_id, employee_code))
 
         if cursor.rowcount == 0:
-            raise Exception("ไม่สามารถอัปเดตได้ (อาจถูกอนุมัติแล้ว, ถูกปฏิเสธแล้ว หรือรหัสพนักงานไม่ตรง)")
+            raise Exception("ไม่สามารถอัปเดตได้ (อาจถูกอนุมัติ/ปฏิเสธแล้ว หรือรหัสพนักงานไม่ตรง)")
 
         conn.commit()
         conn.close()
-        print(f"✅ SQL OK: start={start_t} end={end_t}")
 
     except Exception as e:
         conn.rollback()
         conn.close()
         raise Exception(f"อัปเดตเวลาไม่สำเร็จ: {e}")
 
-def update_ot_detail(request_id, start_time, end_time, ot_reason, job_description):
-    """อัปเดตเวลาและรายละเอียดงาน (ใช้เวลาแก้ไขในหน้าผู้ดูแล)"""
-    conn = get_connection()
-    cursor = conn.cursor()
-    cursor.execute("""
-        UPDATE OT_Request
-        SET start_time = ?, end_time = ?, ot_reason = ?, job_description = ?
-        WHERE request_id = ?
-    """, (start_time, end_time, ot_reason, job_description, request_id))
-    conn.commit()
-    conn.close()
 
 def get_ot_report(start_date=None, end_date=None, department=None, employee_code=None, status=None):
     conn = get_connection()
@@ -183,7 +183,6 @@ def get_ot_report(start_date=None, end_date=None, department=None, employee_code
         SELECT 
             request_id, employee_code, employee_name, department, position,
             ot_date, start_time, end_time,
-            -- ✅ คำนวณชั่วโมง OT รองรับข้ามวัน + กัน NULL/ว่าง
             CASE 
                 WHEN TRY_CONVERT(TIME, start_time) IS NULL OR TRY_CONVERT(TIME, end_time) IS NULL THEN 0
                 ELSE 
@@ -226,6 +225,7 @@ def get_ot_report(start_date=None, end_date=None, department=None, employee_code
     conn.close()
     return rows
 
+
 def get_departments():
     conn = get_connection()
     cursor = conn.cursor()
@@ -238,6 +238,7 @@ def get_departments():
     rows = [r[0] for r in cursor.fetchall()]
     conn.close()
     return rows
+
 
 def get_employees():
     conn = get_connection()
